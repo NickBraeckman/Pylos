@@ -18,6 +18,7 @@ import java.util.Random;
  * Created by Jan on 15/11/2016.
  */
 public class PylosMain {
+	//comment test voor VCS
 
 	public PylosMain(){
 
