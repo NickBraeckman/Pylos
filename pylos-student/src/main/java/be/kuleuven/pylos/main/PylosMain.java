@@ -26,7 +26,7 @@ public class PylosMain {
 
 	public void startSingleGame(){
 
-		Random random = new Random(0);
+		Random random = new Random(10);
 
 		PylosPlayer randomPlayerCodes = new PylosPlayerRandomFit();
 		PylosPlayer randomPlayerStudent = new StudentPlayerRandomFit();
@@ -38,8 +38,10 @@ public class PylosMain {
 	}
 
 	public void startBattle(){
-		PylosPlayer playerLight = new PylosPlayerBestFit();
-		PylosPlayer playerDark = new StudentPlayerBestFit();
+		//PylosPlayer playerLight = new PylosPlayerBestFit();
+		PylosPlayer playerLight = new StudentPlayerRandomFit();
+		//PylosPlayer playerDark = new StudentPlayerBestFit();
+		PylosPlayer playerDark = new StudentPlayerRandomFit();
 
 		Battle.play(playerLight, playerDark, 100);
 	}
@@ -48,8 +50,8 @@ public class PylosMain {
 
 		/* !!! vm argument !!! -ea */
 
-		new PylosMain().startSingleGame();
-//		new PylosMain().startBattle();
+//		new PylosMain().startSingleGame();
+		new PylosMain().startBattle();
 
 	}
 
