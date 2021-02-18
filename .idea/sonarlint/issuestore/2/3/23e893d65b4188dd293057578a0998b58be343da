@@ -1,0 +1,43 @@
+
+U
+java:S2184H"@Cast one of the operands of this integer division to a "double".(ğö¬
+`	java:S112"FDefine and throw a dedicated exception instead of using a generic one.(¥ˆÅ‰üÿÿÿÿ
+Q
+java:S1141¯"5Extract this nested try block into a separate method.(¡»¢üùÿÿÿÿ
+k	java:S116/"VRename this field "HEIGHT_DIFF" to match the regular expression '^[a-z][a-zA-Z0-9]*$'.(Æ‚–—
+t	java:S1160"ZRename this field "MIN_XY_ON_BOARD" to match the regular expression '^[a-z][a-zA-Z0-9]*$'.(Õâö¡ÿÿÿÿÿ
+p	java:S1161"[Rename this field "MIN_XY_OFF_BOARD" to match the regular expression '^[a-z][a-zA-Z0-9]*$'.(¦˜”
+P	java:S125&"<This block of commented-out lines of code should be removed.(ĞŸÃ
+u
+java:S1171¡"YMove the contents of this initializer to a standard constructor or to field initializers.(ÒÌâ–øÿÿÿÿ
+u
+java:S1171µ"YMove the contents of this initializer to a standard constructor or to field initializers.(ÒÌâ–øÿÿÿÿ
+6
+java:S1659Ï" Declare "tY" on a separate line.(ç³ŞN
+U
+java:S1117ß"9Rename "board" which hides the field declared at line 51.(„Ÿîáùÿÿÿÿ
+]
+java:S2142ô"FEither re-interrupt this method or rethrow the "InterruptedException".(ä ¹€
+W	java:S125ƒ"<This block of commented-out lines of code should be removed.(å÷¨ìıÿÿÿÿ
+]
+java:S2142µ"FEither re-interrupt this method or rethrow the "InterruptedException".(ä ¹€
+]
+java:S2142±"FEither re-interrupt this method or rethrow the "InterruptedException".(ä ¹€
+Q
+java:S2274°":Remove this call to "wait" or move it into a "while" loop.(“¿íÏ
+C
+java:S1602Í",Remove useless curly braces around statement(ÃÉş©
+t	java:S131ã"YComplete cases by adding the missing enum constants or add a default case to this switch.(‹Á‹£ûÿÿÿÿ
+i
+java:S3776·"RRefactor this method to reduce its Cognitive Complexity from 17 to the 15 allowed.(ö¶Ú¯
+t	java:S131¹"YComplete cases by adding the missing enum constants or add a default case to this switch.(£¹ª¥şÿÿÿÿ
+n
+java:S3776Ú"RRefactor this method to reduce its Cognitive Complexity from 34 to the 15 allowed.(ÑõÎÌúÿÿÿÿ
+]
+java:S2142˜"FEither re-interrupt this method or rethrow the "InterruptedException".(ä ¹€
+C
+java:S10689"-Remove this unused "materials" private field.(­ÜÑÃ
+:
+java:S3398õ"$Move this method into "HumanPlayer".(ßµÈf
+@
+java:S3398á"$Move this method into "HumanPlayer".(·¼ó’şÿÿÿÿ

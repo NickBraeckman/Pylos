@@ -1,0 +1,11 @@
+# Project exclude paths
+/.gradle/
+/pylos-core/build/
+/pylos-core/build/classes/java/main/
+/pylos-gui/build/
+/pylos-gui/build/classes/java/main/
+/pylos-student/build/
+/pylos-student/build/classes/java/main/
+*.iml
+*.class
+*.jar

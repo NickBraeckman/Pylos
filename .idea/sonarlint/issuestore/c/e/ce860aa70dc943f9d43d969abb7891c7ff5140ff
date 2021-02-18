@@ -1,0 +1,56 @@
+
+b
+java:S1192Y"GDefine a constant instead of duplicating this literal " * %6s" 9 times.(¢ÕÀúÿÿÿÿ
+]
+java:S1192["GDefine a constant instead of duplicating this literal "% Draw" 3 times.(‰ğÃ¯
+[
+java:S2184Y"@Cast one of the operands of this integer division to a "double".(¢ÕÀúÿÿÿÿ
+[
+java:S2184Z"@Cast one of the operands of this integer division to a "double".(ØîË…üÿÿÿÿ
+V
+java:S2184["@Cast one of the operands of this integer division to a "double".(‰ğÃ¯
+V
+java:S2184^"@Cast one of the operands of this integer division to a "double".(Œ»ÇŸ
+V
+java:S2184_"@Cast one of the operands of this integer division to a "double".(ªËŠ±
+[
+java:S2184`"@Cast one of the operands of this integer division to a "double".(–«Åùÿÿÿÿ
+w
+java:S1488k"\Immediately return this expression instead of assigning it to the temporary variable "wins".(æó¼­şÿÿÿÿ
+P
+java:S1118":Add a private constructor to hide the implicit public one.(Æ©Í´
+V
+java:S1854*";Remove this useless assignment to local variable "message".(°¥Óßÿÿÿÿÿ
+V
+java:S18541";Remove this useless assignment to local variable "message".(íº–Ùûÿÿÿÿ
+V
+java:S1854D";Remove this useless assignment to local variable "message".(°¥Óßÿÿÿÿÿ
+V
+java:S1854K";Remove this useless assignment to local variable "message".(ú»‘Âøÿÿÿÿ
+h
+java:S3776"RRefactor this method to reduce its Cognitive Complexity from 24 to the 15 allowed.(Ù”æÄ
+V	java:S1253"<This block of commented-out lines of code should be removed.(´İ•şÿÿÿÿ
+V	java:S125M"<This block of commented-out lines of code should be removed.(´İ•şÿÿÿÿ
+S	java:S106V"9Replace this use of System.out or System.err by a logger.(ŞÒ—üÿÿÿÿ
+S	java:S106W"9Replace this use of System.out or System.err by a logger.(şæ£ñşÿÿÿÿ
+N	java:S106X"9Replace this use of System.out or System.err by a logger.(à¾®é
+S	java:S106Y"9Replace this use of System.out or System.err by a logger.(¢ÕÀúÿÿÿÿ
+S	java:S106Z"9Replace this use of System.out or System.err by a logger.(ØîË…üÿÿÿÿ
+N	java:S106["9Replace this use of System.out or System.err by a logger.(‰ğÃ¯
+S	java:S106\"9Replace this use of System.out or System.err by a logger.(ªÓ¼áşÿÿÿÿ
+S	java:S106]"9Replace this use of System.out or System.err by a logger.(¶×ü·ÿÿÿÿÿ
+N	java:S106^"9Replace this use of System.out or System.err by a logger.(Œ»ÇŸ
+N	java:S106_"9Replace this use of System.out or System.err by a logger.(ªËŠ±
+S	java:S106`"9Replace this use of System.out or System.err by a logger.(–«Åùÿÿÿÿ
+S	java:S106a"9Replace this use of System.out or System.err by a logger.(ªÓ¼áşÿÿÿÿ
+S	java:S106b"9Replace this use of System.out or System.err by a logger.(‰˜ïşÿÿÿÿ
+M	java:S106c"9Replace this use of System.out or System.err by a logger.(Ô÷R
+N	java:S106d"9Replace this use of System.out or System.err by a logger.(şàÖß
+S	java:S106e"9Replace this use of System.out or System.err by a logger.(ÍöïÄûÿÿÿÿ
+S	java:S106f"9Replace this use of System.out or System.err by a logger.(ªÓ¼áşÿÿÿÿ
+S	java:S106g"9Replace this use of System.out or System.err by a logger.(ËÒ¼Ôøÿÿÿÿ
+S	java:S106h"9Replace this use of System.out or System.err by a logger.(şæ£ñşÿÿÿÿ
+G
+java:S1481'",Remove this unused "message" local variable.(è¶ú²ùÿÿÿÿ
+B
+java:S1481A",Remove this unused "message" local variable.(Ùµ¯º
