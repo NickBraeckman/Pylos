@@ -2,7 +2,6 @@ package be.kuleuven.pylos.player.student;
 
 import be.kuleuven.pylos.game.*;
 import be.kuleuven.pylos.player.PylosPlayer;
-import jdk.internal.misc.FileSystemOption;
 
 import java.util.ArrayList;
 import java.util.Arrays;
