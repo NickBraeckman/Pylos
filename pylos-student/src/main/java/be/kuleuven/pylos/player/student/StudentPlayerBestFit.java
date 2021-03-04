@@ -87,6 +87,9 @@ public class StudentPlayerBestFit extends PylosPlayer {
 
     @Override
     public void doRemove(PylosGameIF game, PylosBoard board) {
+
+        //TODO: take the most optimal usable sphere out of the square
+
         PylosSphere sphere = lastLocation.getSphere();
         game.removeSphere(sphere);
 
@@ -94,6 +97,27 @@ public class StudentPlayerBestFit extends PylosPlayer {
 
     @Override
     public void doRemoveOrPass(PylosGameIF game, PylosBoard board) {
-        game.pass();
+
+        /***
+         * probeer eerst altijd een moveable sphere te verwijderen van het bord
+         * pass indien er geen moveable spheres zijn
+         */
+
+        //zoek alle moveable spheres
+        ArrayList<PylosSphere> moveableSpheres = new ArrayList<>();
+        for(PylosSphere sphere : board.getSpheres(this)){
+            if(!sphere.isReserve() && !sphere.getLocation().hasAbove()){
+                moveableSpheres.add(sphere);
+            }
+        }
+
+        if(moveableSpheres.isEmpty()){
+           game.pass();
+        }
+
+        //select de te verwijderen sphere
+        int index = this.getRandom().nextInt(moveableSpheres.size());
+        game.removeSphere(moveableSpheres.get(index));
+        moveableSpheres.remove(index);
     }
 }
