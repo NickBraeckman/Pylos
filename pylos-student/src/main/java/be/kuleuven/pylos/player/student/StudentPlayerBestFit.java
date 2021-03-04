@@ -99,8 +99,8 @@ public class StudentPlayerBestFit extends PylosPlayer {
     public void doRemoveOrPass(PylosGameIF game, PylosBoard board) {
 
         /***
-         * probeer eerst altijd een moveable sphere te verwijderen van het bord
-         * pass indien er geen moveable spheres zijn
+         * probeer eerst altijd een bol te verwijderen van het bord
+         * pass indien er geen verwijderbare bollen zijn
          */
 
         //zoek alle moveable spheres
