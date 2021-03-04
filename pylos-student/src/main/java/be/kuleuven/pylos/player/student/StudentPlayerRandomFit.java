@@ -4,13 +4,7 @@ import be.kuleuven.pylos.game.*;
 import be.kuleuven.pylos.player.PylosPlayer;
 
 import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Random;
 
-/**
- * Created by Ine on 5/05/2015.
- */
 public class StudentPlayerRandomFit extends PylosPlayer{
     PylosLocation lastLocation = null;
 
@@ -43,6 +37,7 @@ public class StudentPlayerRandomFit extends PylosPlayer{
 
     @Override
     public void doRemove(PylosGameIF game, PylosBoard board) {
+
         //zoek alle moveable spheres
         PylosSphere[] allSpheres = board.getSpheres(this);
         ArrayList<PylosSphere> moveableSpheres = new ArrayList<>();
