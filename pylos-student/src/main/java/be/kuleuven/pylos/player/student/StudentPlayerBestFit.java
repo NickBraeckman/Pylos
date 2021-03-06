@@ -4,7 +4,9 @@ import be.kuleuven.pylos.game.*;
 import be.kuleuven.pylos.player.PylosPlayer;
 
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
+import java.util.ListIterator;
 
 
 public class StudentPlayerBestFit extends PylosPlayer {
@@ -21,78 +23,143 @@ public class StudentPlayerBestFit extends PylosPlayer {
             }
         }
 
-        if (isFilledSquaredOther(board, game, usableLocations)) {
+        lastLocation = makeSquareLocation(board, game, usableLocations);
+
+        if (lastLocation != null){
+            PylosSphere toMove = board.getReserve(this);
+            game.moveSphere(toMove, lastLocation);
             return;
         }
 
         List<PylosLocation> topLocations = new ArrayList<>();
 
         // move to higher level
-        for (PylosLocation location : board.getLocations()) {
-            if (location.isUsable()) {
-                for (PylosSquare square : location.getSquares()) {
-                    if (square.isSquare() && square.getTopLocation().isUsable()) {
-                        topLocations.add(square.getTopLocation());
+        for (PylosSquare square : board.getAllSquares()) {
+
+            // if square is filled and has empty location above
+            if (square.isSquare() && square.getTopLocation().isUsable()) {
+                topLocations.add(square.getTopLocation());
+            }
+        }
+
+        if (!topLocations.isEmpty()) {
+            lastLocation = makeSquareLocation(board, game, topLocations);
+            if (lastLocation != null) {
+                PylosSphere sphere = board.getReserve(this);
+                game.moveSphere(sphere, lastLocation);
+                return;
+            } else {
+                PylosLocation location = topLocations.get(0);
+                PylosSphere sphere = getMoveableSphere(board, game, location);
+                lastLocation = location;
+                game.moveSphere(sphere, location);
+                return;
+            }
+        }
+
+        // block other user if there is a square with 2 his/here spheres
+        lastLocation = getUsableLocation(board, game);
+
+        // choose a random location
+        if (lastLocation == null){
+            lastLocation = usableLocations.get(this.getRandom().nextInt(usableLocations.size()));
+        }
+
+        PylosSphere toMove = board.getReserve(this);
+        game.moveSphere(toMove, lastLocation);
+
+    }
+
+    public PylosLocation getUsableLocation(PylosBoard board, PylosGameIF game){
+
+        PylosLocation usableLocation = null;
+        for (PylosSquare square : board.getAllSquares()){
+            if (square.getInSquare(this.OTHER) == 2 && square.getInSquare(this) == 0){
+                for(PylosLocation location :square.getLocations()){
+                    if (location.isUsable()){
+                        return location;
                     }
                 }
             }
         }
-        if (!topLocations.isEmpty()) {
-            if (isFilledSquaredOther(board, game, topLocations)) {
-                return;
-            } else {
-                PylosLocation location = topLocations.get(0);
-                PylosSphere sphere = board.getReserve(this);
-                board.move(sphere, location);
-            }
-        }
-
-
-        lastLocation = usableLocations.get(this.getRandom().nextInt(usableLocations.size()));
-        PylosSphere toMove = board.getReserve(this);
-
-        game.moveSphere(toMove, lastLocation);
+        return usableLocation;
     }
 
-    public boolean isFilledSquaredOther(PylosBoard board, PylosGameIF game, List<PylosLocation> locations) {
+    public PylosSphere getMoveableSphere(PylosBoard board, PylosGameIF game, PylosLocation location) {
+        PylosSphere moveableSphere = null;
+        for (PylosSphere sphere : board.getSpheres(this)) {
+            if (sphere.canMoveTo(location)) {
+                if (sphere.isReserve() && moveableSphere == null) {
+                    moveableSphere = sphere;
+
+                    // TODO check if reserve sphere yields the best solution
+                } else {
+                    moveableSphere = sphere;
+                    break;
+                }
+            }
+
+        }
+
+        return moveableSphere;
+    }
+
+    public PylosLocation makeSquareLocation(PylosBoard board, PylosGameIF game, List<PylosLocation> locations) {
 
         PylosLocation makeSquareLocation = null;
         for (PylosLocation location : locations) {
             for (PylosSquare square : location.getSquares()) {
 
-                // blocking a square
+                // make a square, block the other player
                 int spheresOther = square.getInSquare(this.OTHER);
                 if (spheresOther == 3) {
-                    PylosSphere sphere = board.getReserve(this);
-                    game.moveSphere(sphere, location);
-                    return true;
+                    return location;
                 }
 
-                // make a square
+                // make a square, make a filled square
                 int spheresSelf = square.getInSquare(this);
                 if (spheresSelf == 3) {
                     makeSquareLocation = location;
                 }
             }
         }
-
-        if (makeSquareLocation != null) {
-            PylosSphere sphere = board.getReserve(this);
-            game.moveSphere(sphere, makeSquareLocation);
-            return true;
-        }
-
-        return false;
+        return makeSquareLocation;
     }
 
     @Override
     public void doRemove(PylosGameIF game, PylosBoard board) {
 
         //TODO: take the most optimal usable sphere out of the square
-
         PylosSphere sphere = lastLocation.getSphere();
         game.removeSphere(sphere);
 
+    }
+
+    public List<PylosSphere> getRemovableSpheres(PylosGameIF game, PylosBoard board){
+
+        //zoek alle moveable spheres
+        ArrayList<PylosSphere> moveableSpheres = new ArrayList<>();
+        for (PylosSphere sphere : board.getSpheres(this)) {
+            if (!sphere.isReserve() && !sphere.getLocation().hasAbove()) {
+                moveableSpheres.add(sphere);
+            }
+        }
+
+        Iterator<PylosSphere> iterator = moveableSpheres.iterator();
+        while (iterator.hasNext()){
+            PylosSphere sphere = iterator.next();
+            for (PylosSquare square : sphere.getLocation().getSquares()){
+
+                // geef andere speler geen mogelijkheid om een square te maken
+                if (square.getInSquare(this.OTHER) == 3){
+                    iterator.remove();
+                }
+
+            }
+        }
+
+
+        return moveableSpheres;
     }
 
     @Override
@@ -103,19 +170,13 @@ public class StudentPlayerBestFit extends PylosPlayer {
          * pass indien er geen verwijderbare bollen zijn
          */
 
-        //zoek alle moveable spheres
-        ArrayList<PylosSphere> moveableSpheres = new ArrayList<>();
-        for(PylosSphere sphere : board.getSpheres(this)){
-            if(!sphere.isReserve() && !sphere.getLocation().hasAbove()){
-                moveableSpheres.add(sphere);
-            }
+        List<PylosSphere> moveableSpheres = getRemovableSpheres(game, board);
+
+        if (moveableSpheres.isEmpty()) {
+            game.pass();
         }
 
-        if(moveableSpheres.isEmpty()){
-           game.pass();
-        }
-
-        //select de te verwijderen sphere
+        //selecteer de te verwijderen sphere
         int index = this.getRandom().nextInt(moveableSpheres.size());
         game.removeSphere(moveableSpheres.get(index));
         moveableSpheres.remove(index);
