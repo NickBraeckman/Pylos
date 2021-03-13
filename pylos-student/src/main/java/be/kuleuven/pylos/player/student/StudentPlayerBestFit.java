@@ -3,10 +3,7 @@ package be.kuleuven.pylos.player.student;
 import be.kuleuven.pylos.game.*;
 import be.kuleuven.pylos.player.PylosPlayer;
 
-import java.util.ArrayList;
-import java.util.Iterator;
-import java.util.List;
-import java.util.ListIterator;
+import java.util.*;
 import java.util.stream.Collectors;
 
 
@@ -68,50 +65,38 @@ public class StudentPlayerBestFit extends PylosPlayer {
 
         // choose a random location
         if (lastLocation == null){
-            //zorg ervoor dat de zet die je selecteert geen square creëert op een hoger niveau voor de tegenspeler
+            //zorg ervoor dat de zet die je selecteert geen gevulde square creëert
             //      -> tenzij het een gedwongen zet is.
             List<PylosLocation> betterRandom = usableLocations.stream().filter( location -> {
                 for(PylosSquare plausibleSquare : location.getSquares()){
                     if(plausibleSquare.getInSquare() == 3) {
-                        for(PylosSquare square : plausibleSquare.getTopLocation().getSquares()){
-                            if(square.getInSquare(this.OTHER) == 3) {
-                                return true;
-                            }
-                        }
+                        return false;
                     }
                 }
-                return false;
+                return true;
             }).collect(Collectors.toList());
             if(!betterRandom.isEmpty()){
                 usableLocations = betterRandom;
-            }
-
-            /*if(usableLocations.size() > 1) {
-                Iterator<PylosLocation> listit = usableLocations.listIterator();
-                while (listit.hasNext()) {
-                    PylosLocation location = listit.next();
-                    //enkel toplocatie checken voor squares die gevuld worden rond de te checken locatie
-                    for (PylosSquare plausibleSquare : location.getSquares()) {
-                        //deze boolean breakt als er gevonden is dat deze locatie beter niet genomen wordt.
-                        boolean hasBeenCancelled = false;
-                        if (plausibleSquare.getInSquare() == 3) {
-                            // check de squares rond de locatie die vrijkomt door de overwogen zet
-                            for (PylosSquare square : plausibleSquare.getTopLocation().getSquares()) {
-                                if (square.getInSquare(this.OTHER) == 3) {
-                                    if (usableLocations.size() > 1) {
-                                        listit.remove();
-                                    }
-                                    hasBeenCancelled = true;
-                                    break;
+            } else {
+                //zorg ervoor dat de square die je creëert geen mogelijkheid geeft tot squaring voor tegenstander op dat hoger niveau
+                //      -> tenzij het een gedwongen zet is
+                List<PylosLocation> slightlyBetterRandom = usableLocations.stream().filter( location -> {
+                    for(PylosSquare plausibleSquare : location.getSquares()){
+                        if(plausibleSquare.getInSquare() == 3) {
+                            for(PylosSquare squareUpTop : plausibleSquare.getTopLocation().getSquares()){
+                                if(squareUpTop.getInSquare(this.OTHER) == 3){
+                                    return false;
                                 }
-                            }
-                            if (hasBeenCancelled) {
-                                break;
                             }
                         }
                     }
+                    return true;
+                }).collect(Collectors.toList());
+                if(!slightlyBetterRandom.isEmpty()){
+                    usableLocations = slightlyBetterRandom;
                 }
-            }*/
+            }
+
             // selecteer at random een van de resterende zetten.
             lastLocation = usableLocations.get(this.getRandom().nextInt(usableLocations.size()));
         }
@@ -122,16 +107,33 @@ public class StudentPlayerBestFit extends PylosPlayer {
     }
 
     public PylosLocation getUsableLocation(PylosBoard board, PylosGameIF game){
+        List<PylosLocation> possibleLocations = new ArrayList<>();
         for (PylosSquare square : board.getAllSquares()){
             if (square.getInSquare(this.OTHER) == 2 && square.getInSquare(this) == 0){
                 for(PylosLocation location :square.getLocations()){
                     if (location.isUsable()){
-                        return location;
+                        possibleLocations.add(location);
                     }
                 }
             }
         }
-        return null;
+        List<PylosLocation> betterLocations = possibleLocations.stream().filter( location -> {
+            for(PylosSquare toCheck : location.getSquares()){
+                if(toCheck.getInSquare() == 3){
+                    return false;
+                }
+            }
+            return true;
+        }).collect(Collectors.toList());
+        if(!betterLocations.isEmpty()){
+            possibleLocations = betterLocations;
+        }
+
+        //return als mogelijk, anders null
+        if(possibleLocations.isEmpty()){
+            return null;
+        }
+        return possibleLocations.get(0);
     }
 
     public PylosSphere getMoveableSphere(PylosBoard board, PylosGameIF game, PylosLocation location) {
@@ -177,15 +179,124 @@ public class StudentPlayerBestFit extends PylosPlayer {
 
     @Override
     public void doRemove(PylosGameIF game, PylosBoard board) {
+        System.out.println("square was made");
 
-        //TODO: take the most optimal usable sphere out of the square
-        PylosSphere sphere = lastLocation.getSphere();
-        game.removeSphere(sphere);
+        Set<PylosSphere> spheres = new HashSet<>();
+        //zoek de net gemaakte square && voeg alle removeable spheres hieraan toe.
+        for(PylosSquare square : lastLocation.getSquares()){
+            if(square.getInSquare(this) == 4){
+                for(PylosLocation loc : square.getLocations()){
+                    if(!loc.hasAbove()){
+                        spheres.add(loc.getSphere());
+                    }
+                }
+            }
+        }
 
+        //zorg ervoor dat de andere geen vierkant kan maken door een bepaalde sphere te removen
+        List<PylosSphere> result = spheres.stream().filter(sphere -> {
+            for(PylosSquare square: sphere.getLocation().getSquares()){
+                if (square.getInSquare(this.OTHER) == 3) return false;
+            }
+            return true;
+        }).collect(Collectors.toList());
+
+        if(!result.isEmpty()){
+            //als Z == 0, kies willekeurig een en verwijder
+            if(result.get(0).getLocation().Z == 0){
+                int index = this.getRandom().nextInt(result.size());
+                game.removeSphere(result.get(index));
+                return;
+            } else {
+                //eigenlijk moet hier rekening gehouden worden met optimale keuze:
+                //verwijderen hier een zodanig dat je als 2e een sphere kan verwijderen die 'omhoog zetten voor de tegenspeler'
+                //onmogelijk maakt
+
+                //TODO: fix this
+                int index = this.getRandom().nextInt(result.size());
+                game.removeSphere(result.get(index));
+                return;
+            }
+        } else {
+            //je kan geen enkele sphere terugnemen uit de net-gemaakte square zonder de tegenstander een vierkant te geven
+
+            //probeer alsnog ergens anders een verwijderbare sphere te vinden
+            //zoek alle moveable spheres
+            List<PylosSphere> moveableSpheres = new ArrayList<>();
+            for (PylosSphere sphere : board.getSpheres(this)) {
+                if (!sphere.isReserve() && !sphere.getLocation().hasAbove()) {
+                    moveableSpheres.add(sphere);
+                }
+            }
+            //verwijder alle spheres uit deze lijst die in het originele vierkant zitten
+            moveableSpheres = moveableSpheres.stream().filter( element -> {
+                return !spheres.contains(element);
+            }).collect(Collectors.toList());
+
+            if(!moveableSpheres.isEmpty()){
+                //er zijn andere opties om te bekijken.
+                result = moveableSpheres;
+            } else {
+                //er is geen andere optie dan een sphere te verwijderen uit de nieuw-gemaakte square
+                result = new ArrayList<>(spheres);
+            }
+        }
+
+        //construëer een map die alle verwijderbare spheres van this.OTHER per niveau groepeert.
+        //map.get(1) returnt de lijst met alle removeable spheres van this.OTHER op niveau Z==1
+        HashMap<Integer, List<PylosSphere>> enemySpheres = new HashMap<>();
+        for(int i=0; i<4; i++){
+            enemySpheres.put(i, new ArrayList<PylosSphere>());
+        }
+        //vul deze map nu correct op
+        for (PylosSphere sphere : board.getSpheres(this.OTHER)) {
+            if (!sphere.isReserve() && !sphere.getLocation().hasAbove()) {
+                enemySpheres.get(sphere.getLocation().Z).add(sphere);
+            }
+        }
+
+        // probeer een sphere weg te pakken zodanig dat de andere niet naar een hoger niveau kan verplaatsen
+        //      -> bekijk alle spheres die verwijderbaar zijn
+        //          DAN -> als deze tot een square behoort en hun toplocatie vrij is, is dit bij prioriteit te verwijderen
+        for(PylosSphere sphere : result){
+            for(PylosSquare square : sphere.getLocation().getSquares()){
+                if(square.getTopLocation().isUsable()){
+                    for(int i=0; i<square.getTopLocation().Z; i++){
+                        if(!enemySpheres.get(i).isEmpty()){
+                            game.removeSphere(sphere);
+                            return;
+                        }
+                    }
+                }
+            }
+        }
+
+        // probeer GEEN sphere weg te nemen die een locatie opent op een hoger niveau ASA de this.OTHER een bal heeft om
+        // naar die locatie te verplaatsen.
+        // MAAR eigenlijk zou hij jou moeten blokkeren op dat moment.
+        //      -> als hij dat dan doet creëert this.OTHER OOK een square waarop jij een lager gelegen sphere kan naartoe verplaatsen.
+        // conclusie: het is beter om de eerste stelling te volgen
+        List<PylosSphere> temp = result.stream().filter( sphere -> {
+            if(sphere.getLocation().Z > 0){
+                for(int i=0; i<sphere.getLocation().Z; i++){
+                    if(!enemySpheres.get(i).isEmpty()){
+                        return false;
+                    }
+                }
+            }
+            return true;
+        }).collect(Collectors.toList());
+        if(!temp.isEmpty()){
+            result = temp;
+        }
+
+        //eventueel andere dingen bekijken
+        System.out.println("size van de removeable lijst: " + result.size());
+        int index = this.getRandom().nextInt(result.size());
+        game.removeSphere(result.get(index));
     }
 
     public List<PylosSphere> getRemovableSpheres(PylosGameIF game, PylosBoard board){
-
         //zoek alle moveable spheres
         ArrayList<PylosSphere> moveableSpheres = new ArrayList<>();
         for (PylosSphere sphere : board.getSpheres(this)) {
@@ -197,45 +308,34 @@ public class StudentPlayerBestFit extends PylosPlayer {
         //belet om spheres terug te nemen die tegenstander een square geven
         List<PylosSphere> result = moveableSpheres.stream().filter(sphere -> {
             for(PylosSquare square: sphere.getLocation().getSquares()){
-                if (square.getInSquare(this.OTHER) == 3) return true;
+                if (square.getInSquare(this.OTHER) == 3) return false;
             }
-            return false;
+            return true;
         }).collect(Collectors.toList());
 
         // probeer ervoor te zorgen dat je de eigen mogelijkheid om squares te maken niet fnuikt
         List<PylosSphere> secondaryResult = result.stream().filter(sphere -> {
             for(PylosSquare square: sphere.getLocation().getSquares()){
-                if (square.getInSquare(this) == 3) return true;
+                if (square.getInSquare(this) == 3 && square.getInSquare(this.OTHER) == 0) return false;
             }
-            return false;
+            return true;
         }).collect(Collectors.toList());
+
+        // probeer een sphere weg te pakken zodanig dat de andere niet naar een hoger niveau kan verplaatsen
+        //      -> bekijk alle spheres die verwijderbaar zijn
+        //          DAN -> als deze tot een square behoort en hun toplocatie vrij is, is dit bij prioriteit te verwijderen
+
+        // probeer GEEN sphere weg te nemen die een locatie opent op een hoger niveau ASA de this.OTHER een bal heeft om
+        // naar die locatie te verplaatsen.
+        // MAAR eigenlijk zou hij jou moeten blokkeren op dat moment.
+        //      -> als hij dat dan doet creëert this.OTHER OOK een square waarop jij een lager gelegen sphere kan naartoe verplaatsen.
+        // conclusie: het is beter om de eerste stelling te volgen
 
         if(secondaryResult.isEmpty()){
             return result;
         } else {
             return secondaryResult;
         }
-        /*Iterator<PylosSphere> iterator = moveableSpheres.iterator();
-        while (iterator.hasNext()){
-            PylosSphere sphere = iterator.next();
-            for (PylosSquare square : sphere.getLocation().getSquares()){
-
-                // geef andere speler geen mogelijkheid om een square te maken
-                if (square.getInSquare(this.OTHER) == 3){
-                    iterator.remove();
-                    continue;
-                }
-
-                // probeer ervoor te zorgen dat je de eigen mogelijkheid om squares te maken niet fnuikt
-                if (square.getInSquare(this) == 3) {
-                    if(moveableSpheres.size() > 1){
-                        iterator.remove();
-                        continue;
-                    }
-                }
-
-            }
-        }*/
     }
 
     @Override

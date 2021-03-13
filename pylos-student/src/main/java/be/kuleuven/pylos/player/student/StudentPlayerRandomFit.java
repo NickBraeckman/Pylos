@@ -19,7 +19,6 @@ public class StudentPlayerRandomFit extends PylosPlayer{
 
         /* game methods
          * game.moveSphere(myReserveSphere, allLocations[0]); */
-
         PylosLocation[] locations = board.getLocations();
         ArrayList<PylosLocation> possibleLocations = new ArrayList<>();
 
