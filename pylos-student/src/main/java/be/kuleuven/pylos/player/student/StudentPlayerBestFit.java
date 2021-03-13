@@ -9,9 +9,32 @@ import java.util.stream.Collectors;
 
 public class StudentPlayerBestFit extends PylosPlayer {
     PylosLocation lastLocation = null;
+    Map<Integer, List<PylosSphere>> enemySpheres;
+
+    public void init(PylosGameIF game, PylosBoard board){
+        //construëer een map die alle verwijderbare spheres van this.OTHER per niveau groepeert.
+        //map.get(1) returnt de lijst met alle moveable spheres van this.OTHER op niveau Z==1
+        enemySpheres = new HashMap<>();
+        for(int i=0; i<4; i++){
+            enemySpheres.put(i, new ArrayList<PylosSphere>());
+        }
+        //vul deze map nu correct op
+        for (PylosSphere sphere : board.getSpheres(this.OTHER)) {
+            if (!sphere.isReserve() && !sphere.getLocation().hasAbove()) {
+                //de enemy zal zijn sphere niet verplaatsen als dat mij een square geeft
+                for(PylosSquare square : sphere.getLocation().getSquares()){
+                    if(!(square.getInSquare(this) == 3)){
+                        enemySpheres.get(sphere.getLocation().Z).add(sphere);
+                    }
+                }
+            }
+        }
+    }
 
     @Override
     public void doMove(PylosGameIF game, PylosBoard board) {
+        //init de map met enemy spheres
+        init(game, board);
         //vind alle useable locations
         List<PylosLocation> usableLocations = new ArrayList<>();
         for (PylosLocation location : board.getLocations()) {
@@ -33,7 +56,7 @@ public class StudentPlayerBestFit extends PylosPlayer {
         for (PylosSquare square : board.getAllSquares()) {
             // if square is filled and has empty location above
             if (square.isSquare() && square.getTopLocation().isUsable()) {
-                //if this move creates square opportunity for enemy, don't do it.
+                //if this move creates 4-square opportunity for enemy, don't do it.
                 for(PylosSquare topsquare : square.getTopLocation().getSquares()){
                     if(topsquare.getInSquare(this.OTHER) != 3){
                         topLocations.add(square.getTopLocation());
@@ -106,7 +129,10 @@ public class StudentPlayerBestFit extends PylosPlayer {
 
     }
 
+    //deze functie wordt opgeroepen bij het zoeken naar een square waar de enemy 2 spheres heeft en jij geen.
+    //  -> returnt de optimale locatie
     public PylosLocation getUsableLocation(PylosBoard board, PylosGameIF game){
+        //zoek alle mogelijke locaties die voldoen aan de gestelde voorwaarde
         List<PylosLocation> possibleLocations = new ArrayList<>();
         for (PylosSquare square : board.getAllSquares()){
             if (square.getInSquare(this.OTHER) == 2 && square.getInSquare(this) == 0){
@@ -117,8 +143,11 @@ public class StudentPlayerBestFit extends PylosPlayer {
                 }
             }
         }
+        //probeer hier enkele niet-optimale zetten te verwijderen.
         List<PylosLocation> betterLocations = possibleLocations.stream().filter( location -> {
             for(PylosSquare toCheck : location.getSquares()){
+                //probeer niet te zetten in een locatie die een square vervolledigt:
+                //dit zou leiden tot de enemy die een ball naar een niveau hoger kan verplaatsen.
                 if(toCheck.getInSquare() == 3){
                     return false;
                 }
@@ -137,22 +166,69 @@ public class StudentPlayerBestFit extends PylosPlayer {
     }
 
     public PylosSphere getMoveableSphere(PylosBoard board, PylosGameIF game, PylosLocation location) {
-        PylosSphere moveableSphere = null;
-        for (PylosSphere sphere : board.getSpheres(this)) {
-            if (sphere.canMoveTo(location)) {
-                if (sphere.isReserve() && moveableSphere == null) {
-                    moveableSphere = sphere;
-                    // TODO check if reserve sphere yields the best solution
-                } else {
-                    moveableSphere = sphere;
-                    break;
+        //It's possible that picking a sphere from the reserves yields a better result than moving a sphere from the board up a level
+        //      -> ie: when you would give the enemy the opportunity to 4-square by moving
+        List<PylosSphere> moveableSpheres = Arrays.stream(board.getSpheres(this)).filter(sphere -> {
+            if(!sphere.isReserve() && sphere.canMoveTo(location)){
+                for(PylosSquare square : sphere.getLocation().getSquares()){
+                    if(square.getInSquare(this.OTHER) == 3){
+                        return false;
+                    }
+                }
+                return true;
+            }
+            return false;
+        }).collect(Collectors.toList());
+        //if this list is empty we should return a reserve
+        //this list is empty when all spheres on board either:
+        //          cannot move to the designated location
+        //  or      would open a square for the enemy player by moving
+        if(moveableSpheres.isEmpty()){
+            return board.getReserve(this);
+        }
+
+        //now we know that the list moveableSpheres contains spheres that CAN move to the location AND don't give the enemy a 4-square
+
+        //consideration 1
+        // probeer een sphere weg te pakken zodanig dat de andere niet naar een hoger niveau kan verplaatsen
+        //      -> bekijk alle spheres die verwijderbaar zijn
+        //          DAN -> als deze tot een square behoort en hun toplocatie vrij is, is dit bij prioriteit te verwijderen
+        for(PylosSphere sphere : moveableSpheres){
+            for(PylosSquare square : sphere.getLocation().getSquares()){
+                if(square.getTopLocation().isUsable()){
+                    for(int i=0; i<square.getTopLocation().Z; i++){
+                        if(!enemySpheres.get(i).isEmpty()){
+                            return sphere;
+                        }
+                    }
                 }
             }
         }
-        if (moveableSphere == null){
-            moveableSphere = board.getReserve(this);
+
+        // probeer GEEN sphere weg te nemen die een locatie opent op een hoger niveau ASA de this.OTHER een bal heeft om
+        // naar die locatie te verplaatsen.
+        // MAAR eigenlijk zou hij jou moeten blokkeren op dat moment.
+        //      -> als hij dat dan doet creëert this.OTHER OOK een square waarop jij een lager gelegen sphere kan naartoe verplaatsen.
+        // conclusie: het is beter om de eerste stelling te volgen
+        List<PylosSphere> temp = moveableSpheres.stream().filter( sphere -> {
+            if(sphere.getLocation().Z > 0){
+                for(int i=0; i<sphere.getLocation().Z; i++){
+                    if(!enemySpheres.get(i).isEmpty()){
+                        return false;
+                    }
+                }
+            }
+            return true;
+        }).collect(Collectors.toList());
+        if(!temp.isEmpty()){
+            moveableSpheres = temp;
         }
-        return moveableSphere;
+
+        //eventueel nog andere considerations?
+
+        //selecteer randomly een move uit de resterende moves
+        int index = this.getRandom().nextInt(moveableSpheres.size());
+        return moveableSpheres.get(index);
     }
 
     public PylosLocation makeSquareLocation(PylosBoard board, PylosGameIF game, List<PylosLocation> locations) {
@@ -179,8 +255,7 @@ public class StudentPlayerBestFit extends PylosPlayer {
 
     @Override
     public void doRemove(PylosGameIF game, PylosBoard board) {
-        System.out.println("square was made");
-
+        //set houdt de spheres van de nieuw-gemaakte square bij
         Set<PylosSphere> spheres = new HashSet<>();
         //zoek de net gemaakte square && voeg alle removeable spheres hieraan toe.
         for(PylosSquare square : lastLocation.getSquares()){
@@ -193,7 +268,7 @@ public class StudentPlayerBestFit extends PylosPlayer {
             }
         }
 
-        //zorg ervoor dat de andere geen vierkant kan maken door een bepaalde sphere te removen
+        //zorg ervoor dat de enemy geen vierkant kan maken door een bepaalde sphere te removen
         List<PylosSphere> result = spheres.stream().filter(sphere -> {
             for(PylosSquare square: sphere.getLocation().getSquares()){
                 if (square.getInSquare(this.OTHER) == 3) return false;
@@ -203,19 +278,48 @@ public class StudentPlayerBestFit extends PylosPlayer {
 
         if(!result.isEmpty()){
             //als Z == 0, kies willekeurig een en verwijder
-            if(result.get(0).getLocation().Z == 0){
-                int index = this.getRandom().nextInt(result.size());
-                game.removeSphere(result.get(index));
-                return;
-            } else {
-                //eigenlijk moet hier rekening gehouden worden met optimale keuze:
-                //verwijderen hier een zodanig dat je als 2e een sphere kan verwijderen die 'omhoog zetten voor de tegenspeler'
-                //onmogelijk maakt
+            for(PylosSphere sphere : result){
+                if(sphere.getLocation().Z > 0){
+                    //kijk eerst of door deze te verwijderen we een andere van ons kunnen vrijmaken die ook verwijderbaar is
+                    for(PylosLocation locationsBelowThisSphere : sphere.getLocation().getBelow()){
+                        if(locationsBelowThisSphere.amountAbove() == 1 && locationsBelowThisSphere.getSphere().PLAYER_COLOR == this.PLAYER_COLOR){
+                            //als deze de enemy niet belet van een 4-square te maken
+                            boolean isGuardingSquare = false;
+                            for(PylosSquare square : locationsBelowThisSphere.getSquares()){
+                                if(square.getInSquare(this.OTHER) == 3){
+                                    isGuardingSquare = true;
+                                }
+                            }
+                            if(!isGuardingSquare){
+                                //we kunnen nu deze sphere verwijderen, alsook straks die dat net vrijgemaakt is.
+                                game.removeSphere(sphere);
+                                return;
+                            }
+                        }
+                    }
 
-                //TODO: fix this
-                int index = this.getRandom().nextInt(result.size());
-                game.removeSphere(result.get(index));
-                return;
+                    //kijk nu of de enemy naar hier eventueel gewoonweg niet naar kan verplaatsen.
+                    boolean enemyCouldMoveHere = false;
+                    for(int i=0; i<sphere.getLocation().Z; i++){
+                        for(PylosSphere enemySphere : enemySpheres.get(i)){
+                            if(enemySphere.canMoveTo(sphere.getLocation())){
+                                //enemy zal dit enkel doen als hij mij geen square geeft, maar dit wordt reeds gecontroleerd:
+                                //elementen waar dit zo zou zijn zitten nl niet in de lijst!!
+                                enemyCouldMoveHere = true;
+                            }
+                        }
+                        if(!enemyCouldMoveHere){
+                            game.removeSphere(sphere);
+                            return;
+                        }
+                    }
+                } else {
+                    //nu zijn we dus aan het kijken op niveau Z == 0
+                    //hier kunnen we gewoon willekeurig kiezen: er wordt reeds gecontroleerd dat we de enemy geen 4-squares geven.
+                    int index = this.getRandom().nextInt(result.size());
+                    game.removeSphere(result.get(index));
+                    return;
+                }
             }
         } else {
             //je kan geen enkele sphere terugnemen uit de net-gemaakte square zonder de tegenstander een vierkant te geven
@@ -239,19 +343,6 @@ public class StudentPlayerBestFit extends PylosPlayer {
             } else {
                 //er is geen andere optie dan een sphere te verwijderen uit de nieuw-gemaakte square
                 result = new ArrayList<>(spheres);
-            }
-        }
-
-        //construëer een map die alle verwijderbare spheres van this.OTHER per niveau groepeert.
-        //map.get(1) returnt de lijst met alle removeable spheres van this.OTHER op niveau Z==1
-        HashMap<Integer, List<PylosSphere>> enemySpheres = new HashMap<>();
-        for(int i=0; i<4; i++){
-            enemySpheres.put(i, new ArrayList<PylosSphere>());
-        }
-        //vul deze map nu correct op
-        for (PylosSphere sphere : board.getSpheres(this.OTHER)) {
-            if (!sphere.isReserve() && !sphere.getLocation().hasAbove()) {
-                enemySpheres.get(sphere.getLocation().Z).add(sphere);
             }
         }
 
@@ -297,7 +388,7 @@ public class StudentPlayerBestFit extends PylosPlayer {
     }
 
     public List<PylosSphere> getRemovableSpheres(PylosGameIF game, PylosBoard board){
-        //zoek alle moveable spheres
+        //zoek alle removeable spheres
         ArrayList<PylosSphere> moveableSpheres = new ArrayList<>();
         for (PylosSphere sphere : board.getSpheres(this)) {
             if (!sphere.isReserve() && !sphere.getLocation().hasAbove()) {
@@ -313,29 +404,61 @@ public class StudentPlayerBestFit extends PylosPlayer {
             return true;
         }).collect(Collectors.toList());
 
-        // probeer ervoor te zorgen dat je de eigen mogelijkheid om squares te maken niet fnuikt
-        List<PylosSphere> secondaryResult = result.stream().filter(sphere -> {
-            for(PylosSquare square: sphere.getLocation().getSquares()){
-                if (square.getInSquare(this) == 3 && square.getInSquare(this.OTHER) == 0) return false;
-            }
-            return true;
-        }).collect(Collectors.toList());
+        //init deze lijst voor de verdere stappen
+        List<PylosSphere> secondaryResult;
 
         // probeer een sphere weg te pakken zodanig dat de andere niet naar een hoger niveau kan verplaatsen
         //      -> bekijk alle spheres die verwijderbaar zijn
         //          DAN -> als deze tot een square behoort en hun toplocatie vrij is, is dit bij prioriteit te verwijderen
+        secondaryResult = result.stream().filter( sphere -> {
+            for(PylosSquare square : sphere.getLocation().getSquares()){
+                if(square.getTopLocation().isUsable()){
+                    for(int i=0; i<square.getTopLocation().Z; i++){
+                        if(!enemySpheres.get(i).isEmpty()){
+                            return true;
+                        }
+                    }
+                }
+            }
+            return false;
+        }).collect(Collectors.toList());
+
+        if(!secondaryResult.isEmpty()){
+            return secondaryResult;
+        }
 
         // probeer GEEN sphere weg te nemen die een locatie opent op een hoger niveau ASA de this.OTHER een bal heeft om
         // naar die locatie te verplaatsen.
         // MAAR eigenlijk zou hij jou moeten blokkeren op dat moment.
         //      -> als hij dat dan doet creëert this.OTHER OOK een square waarop jij een lager gelegen sphere kan naartoe verplaatsen.
         // conclusie: het is beter om de eerste stelling te volgen
-
-        if(secondaryResult.isEmpty()){
-            return result;
-        } else {
-            return secondaryResult;
+        secondaryResult = result.stream().filter( sphere -> {
+            if(sphere.getLocation().Z > 0){
+                for(int i=0; i<sphere.getLocation().Z; i++){
+                    if(!enemySpheres.get(i).isEmpty()){
+                        return false;
+                    }
+                }
+            }
+            return true;
+        }).collect(Collectors.toList());
+        if(!secondaryResult.isEmpty()){
+            result = secondaryResult;
         }
+
+        // probeer ervoor te zorgen dat je de eigen mogelijkheid om squares te maken niet fnuikt
+        secondaryResult = result.stream().filter(sphere -> {
+            for(PylosSquare square: sphere.getLocation().getSquares()){
+                if (square.getInSquare(this) == 3 && square.getInSquare(this.OTHER) == 0) return false;
+            }
+            return true;
+        }).collect(Collectors.toList());
+
+        if(!secondaryResult.isEmpty()){
+            result = secondaryResult;
+        }
+
+        return result;
     }
 
     @Override

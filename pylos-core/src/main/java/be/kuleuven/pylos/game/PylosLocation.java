@@ -110,6 +110,10 @@ public class PylosLocation {
 		return nUsedAbove > 0;
 	}
 
+	public int amountAbove() {
+		return nUsedAbove;
+	}
+
 	public boolean isUsable() {
 		return !isUsed() && nUsedBelow == 4;
 	}
