@@ -79,6 +79,7 @@ public class StudentPlayerBestFit extends PylosPlayer {
             }
         }
 
+        lastLocation = null;
         // block other user if there is a square with 2 his/here spheres
         lastLocation = getUsableLocation(board, game);
 
@@ -93,11 +94,27 @@ public class StudentPlayerBestFit extends PylosPlayer {
                 }
                 if(allEmpty){
                     int index = this.getRandom().nextInt(4);
-                    game.moveSphere(board.getReserve(this), square.getLocations()[index]);
+                    lastLocation = square.getLocations()[index];
+                    game.moveSphere(board.getReserve(this), lastLocation);
                     return;
                 }
             }
         }
+
+        /*lastLocation = null;
+        for(PylosLocation loc : usableLocations){
+            for(PylosSquare square : loc.getSquares()){
+                if(square.getInSquare(this) == 2 && square.getInSquare(this.OTHER) == 0){
+                    lastLocation = loc;
+                    //foundMove = true;
+                }
+            }
+        }
+        if(lastLocation != null){
+            PylosSphere toMove = board.getReserve(this);
+            game.moveSphere(toMove, lastLocation);
+            return;
+        }*/
 
         // choose a random location
         if (lastLocation == null){
@@ -133,6 +150,7 @@ public class StudentPlayerBestFit extends PylosPlayer {
             if(!betterRandom.isEmpty()){
                 usableLocations = betterRandom;
             } else {
+
                 //zorg ervoor dat de square die je creëert geen mogelijkheid geeft tot squaring voor tegenstander op dat hoger niveau
                 //      -> tenzij het een gedwongen zet is
                 List<PylosLocation> slightlyBetterRandom = usableLocations.stream().filter( location -> {
@@ -152,8 +170,21 @@ public class StudentPlayerBestFit extends PylosPlayer {
                 }
             }
 
+            //kunnen we ergens de enemy dwingen om een square te moeten blokkeren?
+            boolean foundMove = false;
+            for(PylosLocation loc : usableLocations){
+                for(PylosSquare square : loc.getSquares()){
+                    if(square.getInSquare(this) == 2 && square.getInSquare(this.OTHER) == 0){
+                        lastLocation = loc;
+                        foundMove = true;
+                    }
+                }
+            }
+
             // selecteer at random een van de resterende zetten.
-            lastLocation = usableLocations.get(this.getRandom().nextInt(usableLocations.size()));
+            if(!foundMove){
+                lastLocation = usableLocations.get(this.getRandom().nextInt(usableLocations.size()));
+            }
         }
 
         PylosSphere toMove = board.getReserve(this);
@@ -325,6 +356,8 @@ public class StudentPlayerBestFit extends PylosPlayer {
 
         if(!result.isEmpty()){
             //als Z == 0, kies willekeurig een en verwijder
+            /*game.removeSphere(result.get(0));
+            return;*/
             for(PylosSphere sphere : result){
                 if(sphere.getLocation().Z > 0){
                     //kijk eerst of door deze te verwijderen we een andere van ons kunnen vrijmaken die ook verwijderbaar is
