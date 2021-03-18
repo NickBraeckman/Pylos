@@ -56,14 +56,10 @@ public class StudentPlayerBestFit extends PylosPlayer {
         for (PylosSquare square : board.getAllSquares()) {
             // if square is filled and has empty location above
             if (square.isSquare() && square.getTopLocation().isUsable()) {
-                //if this move creates 4-square opportunity for enemy, don't do it.
-                for(PylosSquare topsquare : square.getTopLocation().getSquares()){
-                    if(topsquare.getInSquare(this.OTHER) != 3){
-                        topLocations.add(square.getTopLocation());
-                    }
-                }
+                topLocations.add(square.getTopLocation());
             }
         }
+
         // als er WEL vrije locaties zijn op een hoger niveau, dan
         if (!topLocations.isEmpty()) {
             // kijk of je zelf een square kan maken/enemy beletten om dit te doen
@@ -86,14 +82,50 @@ public class StudentPlayerBestFit extends PylosPlayer {
         // block other user if there is a square with 2 his/here spheres
         lastLocation = getUsableLocation(board, game);
 
+        //verdeel en heers: zet een bol in een lege square op niveau nul als deze square nog leeg is.
+        for(PylosSquare square : board.getAllSquares()){
+            if(square.getLocations()[0].Z == 0){
+                boolean allEmpty = true;
+                for(PylosLocation loc : square.getLocations()){
+                    if(loc.isUsed()){
+                        allEmpty = false;
+                    }
+                }
+                if(allEmpty){
+                    int index = this.getRandom().nextInt(4);
+                    game.moveSphere(board.getReserve(this), square.getLocations()[index]);
+                    return;
+                }
+            }
+        }
+
         // choose a random location
         if (lastLocation == null){
             //zorg ervoor dat de zet die je selecteert geen gevulde square creëert
             //      -> tenzij het een gedwongen zet is.
             List<PylosLocation> betterRandom = usableLocations.stream().filter( location -> {
                 for(PylosSquare plausibleSquare : location.getSquares()){
+                    //ook weer hier, enkel relevant als de enemy zou kunnen verplaatsen
                     if(plausibleSquare.getInSquare() == 3) {
-                        return false;
+                        for(int i=0; i<plausibleSquare.getTopLocation().Z; i++){
+                            if(!enemySpheres.get(i).isEmpty()){
+                                //check wanneer i == toploc.Z-1 of deze lijst enkel gevuld is met de spheres die geblokkeerd worden
+                                /*if(i == plausibleSquare.getTopLocation().Z - 1){
+                                    List<PylosSphere> toCheck = Arrays.stream(board.getSpheres(this.OTHER)).filter( sphere -> {
+                                        if(!sphere.isReserve() && sphere.getLocation().Z == plausibleSquare.getTopLocation().Z - 1){
+                                            if(sphere.getLocation().getSquares().contains(plausibleSquare)){
+                                                return true;
+                                            }
+                                        }
+                                        return false;
+                                    }).collect(Collectors.toList());
+                                    if(enemySpheres.get(i).size() == toCheck.size()) return true;
+                                }*/
+                                return false;
+                            }
+                        }
+                        //boeit niet als enemy er toch niet naar kan verplaatsen
+                        return true;
                     }
                 }
                 return true;
@@ -126,7 +158,6 @@ public class StudentPlayerBestFit extends PylosPlayer {
 
         PylosSphere toMove = board.getReserve(this);
         game.moveSphere(toMove, lastLocation);
-
     }
 
     //deze functie wordt opgeroepen bij het zoeken naar een square waar de enemy 2 spheres heeft en jij geen.
@@ -136,6 +167,13 @@ public class StudentPlayerBestFit extends PylosPlayer {
         List<PylosLocation> possibleLocations = new ArrayList<>();
         for (PylosSquare square : board.getAllSquares()){
             if (square.getInSquare(this.OTHER) == 2 && square.getInSquare(this) == 0){
+                /*boolean notAllAreUsable = false;
+                for(PylosLocation location : square.getLocations()){
+                    if(!location.isUsable()){
+                        notAllAreUsable = true;
+                    }
+                }
+                if(notAllAreUsable) continue;*/
                 for(PylosLocation location :square.getLocations()){
                     if (location.isUsable()){
                         possibleLocations.add(location);
@@ -143,13 +181,22 @@ public class StudentPlayerBestFit extends PylosPlayer {
                 }
             }
         }
+
         //probeer hier enkele niet-optimale zetten te verwijderen.
         List<PylosLocation> betterLocations = possibleLocations.stream().filter( location -> {
             for(PylosSquare toCheck : location.getSquares()){
                 //probeer niet te zetten in een locatie die een square vervolledigt:
                 //dit zou leiden tot de enemy die een ball naar een niveau hoger kan verplaatsen.
+
+                //enkel als de enemy naar dat hoger niveau kan verplaatsen!!
                 if(toCheck.getInSquare() == 3){
-                    return false;
+                    for(int i=0; i<toCheck.getTopLocation().Z; i++){
+                        if(!enemySpheres.get(i).isEmpty()){
+                            return false;
+                        }
+                    }
+                    //als de enemy niet kan verplaatsen is het ok...
+                    return true;
                 }
             }
             return true;
@@ -382,7 +429,7 @@ public class StudentPlayerBestFit extends PylosPlayer {
         }
 
         //eventueel andere dingen bekijken
-        System.out.println("size van de removeable lijst: " + result.size());
+        //System.out.println("size van de removeable lijst: " + result.size());
         int index = this.getRandom().nextInt(result.size());
         game.removeSphere(result.get(index));
     }
@@ -403,6 +450,8 @@ public class StudentPlayerBestFit extends PylosPlayer {
             }
             return true;
         }).collect(Collectors.toList());
+
+        if(result.isEmpty()) return result;
 
         //init deze lijst voor de verdere stappen
         List<PylosSphere> secondaryResult;
@@ -463,12 +512,6 @@ public class StudentPlayerBestFit extends PylosPlayer {
 
     @Override
     public void doRemoveOrPass(PylosGameIF game, PylosBoard board) {
-
-        /***
-         * probeer eerst altijd een bol te verwijderen van het bord
-         * pass indien er geen verwijderbare bollen zijn
-         */
-
         List<PylosSphere> moveableSpheres = getRemovableSpheres(game, board);
 
         if (moveableSpheres.isEmpty()) {

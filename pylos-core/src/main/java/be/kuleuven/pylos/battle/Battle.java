@@ -10,7 +10,7 @@ import java.util.Random;
  */
 public class Battle {
 
-	private static final Random random = new Random(0);
+	private static final Random random = new Random(10);
 
 	public static double[] play(PylosPlayer playerLight, PylosPlayer playerDark, int runs) {
 		return play(playerLight, playerDark, runs, true);
